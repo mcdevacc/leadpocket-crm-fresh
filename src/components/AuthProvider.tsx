@@ -1,14 +1,16 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase-browser'
 import { authService } from '@/lib/auth'
+
+type Profile = any // TODO: replace with your real profile type
 
 interface AuthContextType {
   user: User | null
   session: Session | null
-  userProfile: any | null
+  userProfile: Profile | null
   organization: any | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
@@ -16,79 +18,81 @@ interface AuthContextType {
   signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [userProfile, setUserProfile] = useState<any | null>(null)
+  const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [organization, setOrganization] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // fetch profile/org for a given user id
+  const loadProfile = async (authUserId: string | undefined | null) => {
+    if (!authUserId) {
+      setUserProfile(null)
+      setOrganization(null)
+      return
+    }
+    try {
+      const profile = await authService.getUserProfile(authUserId)
+      setUserProfile(profile)
+      // NOTE: your getUserProfile returns "organizations (...)" — that alias is "organizations".
+      // If you actually want a single organization, adjust here accordingly.
+      setOrganization(profile?.organizations ?? null)
+    } catch (err) {
+      console.error('Error fetching user profile:', err)
+      setUserProfile(null)
+      setOrganization(null)
+    }
+  }
+
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
+    let mounted = true
 
-      if (session?.user) {
-        try {
-          const profile = await authService.getUserProfile(session.user.id)
-          setUserProfile(profile)
-          setOrganization(profile.organizations)
-        } catch (error) {
-          console.error('Error fetching user profile:', error)
-        }
+    const init = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!mounted) return
+        setSession(data.session ?? null)
+        setUser(data.session?.user ?? null)
+        await loadProfile(data.session?.user?.id ?? null)
+      } catch (err) {
+        console.error('Error loading initial session:', err)
+      } finally {
+        if (mounted) setLoading(false)
       }
-
-      setLoading(false)
     }
 
-    getInitialSession()
+    init()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      setSession(s ?? null)
+      setUser(s?.user ?? null)
+      await loadProfile(s?.user?.id ?? null)
+      // don’t set loading true here; treat auth changes as instantaneous from a UX perspective
+    })
 
-        if (session?.user) {
-          try {
-            const profile = await authService.getUserProfile(session.user.id)
-            setUserProfile(profile)
-            setOrganization(profile.organizations)
-          } catch (error) {
-            console.error('Error fetching user profile:', error)
-          }
-        } else {
-          setUserProfile(null)
-          setOrganization(null)
-        }
-
-        setLoading(false)
-      }
-    )
-
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { user } = await authService.signIn(email, password)
-    // Profile will be loaded by the auth state change listener
+    const { user: _ignored } = await authService.signIn(email.trim(), password)
+    // The onAuthStateChange handler will update session/user/profile
   }
 
   const signUp = async (email: string, password: string, fullName: string, orgName: string) => {
-    await authService.signUp(email, password, fullName, orgName)
-    // User will need to verify email before signing in
+    // If you require email confirmation, the user won't be signed in immediately.
+    await authService.signUp(email.trim(), password, fullName.trim(), orgName.trim())
   }
 
   const signOut = async () => {
@@ -99,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOrganization(null)
   }
 
-  const value = {
+  const value = useMemo<AuthContextType>(() => ({
     user,
     session,
     userProfile,
@@ -107,8 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signIn,
     signUp,
-    signOut
-  }
+    signOut,
+  }), [user, session, userProfile, organization, loading])
 
   return (
     <AuthContext.Provider value={value}>

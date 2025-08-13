@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase } from './supabase-browser'
 
 export interface User {
   id: string

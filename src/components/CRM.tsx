@@ -196,4 +196,167 @@ const CRM = () => {
                 <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Recent Leads</h3>
                 <div className="space-y-3">
                   {leads.slice(0, 5).map(lead => (
-                    <div key={lead.id} className={`p-3 rounded-lg ${dar
+                    <div key={lead.id} className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className={`font-medium ${themeClasses.text}`}>{lead.name}</p>
+                          <p className={`text-sm ${themeClasses.textSecondary}`}>{lead.phone}</p>
+                        </div>
+                        <span className="text-green-600 font-semibold">{formatCurrency(lead.job_value)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {leads.length === 0 && (
+                    <p className={`text-sm ${themeClasses.textSecondary}`}>No leads yet. Add your first lead!</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'leads' && (
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className={`text-2xl font-bold ${themeClasses.text}`}>Leads</h1>
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                >
+                  <Plus size={20} />
+                  <span>Add Lead</span>
+                </button>
+              </div>
+
+              <div className={`${themeClasses.cardBg} rounded-lg shadow-sm border ${themeClasses.border} overflow-hidden`}>
+                <table className="w-full">
+                  <thead className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border-b ${themeClasses.border}`}>
+                    <tr>
+                      <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase`}>Name</th>
+                      <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase`}>Contact</th>
+                      <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase`}>Product</th>
+                      <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase`}>Status</th>
+                      <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase`}>Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${themeClasses.border}`}>
+                    {leads.map(lead => (
+                      <tr key={lead.id} className={`hover:bg-gray-50 ${darkMode ? 'hover:bg-gray-700' : ''}`}>
+                        <td className="px-6 py-4">
+                          <div className={`text-sm font-medium ${themeClasses.text}`}>{lead.name}</div>
+                          <div className={`text-sm ${themeClasses.textSecondary}`}>{lead.email}</div>
+                        </td>
+                        <td className={`px-6 py-4 text-sm ${themeClasses.text}`}>{lead.phone}</td>
+                        <td className={`px-6 py-4 text-sm ${themeClasses.text}`}>
+                          {productTypes.find(p => p.value === lead.product_type)?.label}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
+                            New
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-semibold text-green-600">
+                          {formatCurrency(lead.job_value)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {leads.length === 0 && (
+                  <div className="text-center py-12">
+                    <Users size={48} className={`mx-auto ${themeClasses.textSecondary} mb-4`} />
+                    <p className={`text-lg ${themeClasses.text} mb-2`}>No leads found</p>
+                    <p className={`${themeClasses.textSecondary}`}>Add your first lead to get started</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(activeTab !== 'dashboard' && activeTab !== 'leads') && (
+            <div className="p-6">
+              <h1 className={`text-2xl font-bold mb-6 ${themeClasses.text} capitalize`}>{activeTab}</h1>
+              <div className={`${themeClasses.cardBg} p-6 rounded-lg shadow-sm border ${themeClasses.border}`}>
+                <h2 className={`text-lg font-semibold mb-4 ${themeClasses.text}`}>{activeTab} Features</h2>
+                <p className={`${themeClasses.textSecondary}`}>Advanced features coming soon.</p>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Add Lead Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeClasses.cardBg} rounded-lg shadow-xl w-full max-w-md`}>
+            <div className="p-6">
+              <h2 className={`text-xl font-bold mb-4 ${themeClasses.text}`}>Add New Lead</h2>
+              
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={newLead.name}
+                  onChange={(e) => setNewLead({...newLead, name: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded-lg ${themeClasses.border} ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                />
+                
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  value={newLead.email}
+                  onChange={(e) => setNewLead({...newLead, email: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded-lg ${themeClasses.border} ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                />
+                
+                <input
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={newLead.phone}
+                  onChange={(e) => setNewLead({...newLead, phone: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded-lg ${themeClasses.border} ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                />
+                
+                <select
+                  value={newLead.product_type}
+                  onChange={(e) => setNewLead({...newLead, product_type: e.target.value})}
+                  className={`w-full px-3 py-2 border rounded-lg ${themeClasses.border} ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                >
+                  {productTypes.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+                
+                <input
+                  type="number"
+                  placeholder="Estimated Job Value (£)"
+                  value={newLead.job_value || ''}
+                  onChange={(e) => setNewLead({...newLead, job_value: Number(e.target.value)})}
+                  className={`w-full px-3 py-2 border rounded-lg ${themeClasses.border} ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                />
+              </div>
+              
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={createLead}
+                  disabled={!newLead.name.trim() || !newLead.phone.trim()}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Add Lead
+                </button>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className={`px-4 py-2 border rounded-lg ${themeClasses.border} ${themeClasses.text} hover:bg-gray-100`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CRM;

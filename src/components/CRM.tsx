@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Home, MessageSquare, Mail, Settings, BarChart3, Search, Moon, Sun, Loader2 } from 'lucide-react';
+import { useAuth } from './AuthProvider';
 
 interface Lead {
   id: string;
@@ -15,7 +16,6 @@ interface Lead {
 }
 
 const CRM = () => {
-  const { userProfile, organization, signOut } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -25,7 +25,11 @@ const CRM = () => {
     name: '', email: '', phone: '', product_type: 'shutters', job_value: 0
   });
 
-import { useAuth } from './AuthProvider'
+  // Get user data from auth context
+  const { userProfile, organization, signOut } = useAuth();
+  
+  // Use the user's organization ID, with fallback for demo
+  const organizationId = organization?.id || 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
   const productTypes = [
     { value: 'shutters', label: 'Shutters' },
@@ -68,7 +72,7 @@ import { useAuth } from './AuthProvider'
         body: JSON.stringify({
           ...newLead,
           organizationId: organizationId,
-          createdBy: 'demo-user'
+          createdBy: userProfile?.id || 'demo-user'
         })
       });
       
@@ -90,7 +94,7 @@ import { useAuth } from './AuthProvider'
       setLoading(false);
     };
     loadData();
-  }, []);
+  }, [organizationId]);
 
   const formatCurrency = (value: number) => `£${value?.toLocaleString() || 0}`;
 
@@ -114,7 +118,9 @@ import { useAuth } from './AuthProvider'
             <div className="text-2xl">💼</div>
             <div>
               <h1 className={`text-xl font-bold ${themeClasses.text}`}>LeadPocket CRM</h1>
-              <p className={`text-sm ${themeClasses.textSecondary}`}>Demo Company</p>
+              <p className={`text-sm ${themeClasses.textSecondary}`}>
+                {organization?.name || 'Demo Company'}
+              </p>
             </div>
           </div>
         </div>
@@ -147,36 +153,38 @@ import { useAuth } from './AuthProvider'
           </div>
         </nav>
         
+        {/* User Profile and Actions */}
         <div className="p-4 border-t border-gray-200 space-y-2">
-  <div className="flex items-center space-x-3 px-3 py-2">
-    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-      {userProfile?.full_name?.charAt(0) || 'U'}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className={`text-sm font-medium ${themeClasses.text} truncate`}>
-        {userProfile?.full_name || 'User'}
-      </p>
-      <p className={`text-xs ${themeClasses.textSecondary} truncate`}>
-        {userProfile?.email}
-      </p>
-    </div>
-  </div>
-  
-  <button
-    onClick={() => setDarkMode(!darkMode)}
-    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg ${themeClasses.text} hover:bg-gray-100`}
-  >
-    {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-    <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-  </button>
-  
-  <button
-    onClick={signOut}
-    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg ${themeClasses.text} hover:bg-gray-100 text-red-600`}
-  >
-    <span>Sign Out</span>
-  </button>
-</div>
+          <div className="flex items-center space-x-3 px-3 py-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+              {userProfile?.full_name?.charAt(0) || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium ${themeClasses.text} truncate`}>
+                {userProfile?.full_name || 'User'}
+              </p>
+              <p className={`text-xs ${themeClasses.textSecondary} truncate`}>
+                {userProfile?.email}
+              </p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg ${themeClasses.text} hover:bg-gray-100`}
+          >
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+          
+          <button
+            onClick={signOut}
+            className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-red-600 hover:bg-gray-100`}
+          >
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="flex-1">

@@ -7,7 +7,6 @@ function must(v: string | undefined, name: string): string {
 }
 
 declare global {
-  // helps detect accidental second client creation
   // eslint-disable-next-line no-var
   var __lp_sb__: ReturnType<typeof createBrowserClient> | undefined
 }
@@ -17,7 +16,7 @@ export const supabase =
   createBrowserClient(
     must(process.env.NEXT_PUBLIC_SUPABASE_URL, 'NEXT_PUBLIC_SUPABASE_URL'),
     must(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, 'NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-    { auth: { storageKey: 'leadpocket-auth' } } // unique key avoids collisions
+    { auth: { storageKey: 'leadpocket-auth' } } // unique key avoids collisions with any past clients
   )
 
 if (process.env.NODE_ENV !== 'production') globalThis.__lp_sb__ = supabase

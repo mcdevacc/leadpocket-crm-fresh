@@ -15,6 +15,7 @@ interface Lead {
 }
 
 const CRM = () => {
+  const { userProfile, organization, signOut } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -24,7 +25,7 @@ const CRM = () => {
     name: '', email: '', phone: '', product_type: 'shutters', job_value: 0
   });
 
-  const organizationId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+import { useAuth } from './AuthProvider'
 
   const productTypes = [
     { value: 'shutters', label: 'Shutters' },
@@ -146,16 +147,36 @@ const CRM = () => {
           </div>
         </nav>
         
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${themeClasses.text} hover:bg-gray-100`}
-          >
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-            <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-          </button>
-        </div>
-      </div>
+        <div className="p-4 border-t border-gray-200 space-y-2">
+  <div className="flex items-center space-x-3 px-3 py-2">
+    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+      {userProfile?.full_name?.charAt(0) || 'U'}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className={`text-sm font-medium ${themeClasses.text} truncate`}>
+        {userProfile?.full_name || 'User'}
+      </p>
+      <p className={`text-xs ${themeClasses.textSecondary} truncate`}>
+        {userProfile?.email}
+      </p>
+    </div>
+  </div>
+  
+  <button
+    onClick={() => setDarkMode(!darkMode)}
+    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg ${themeClasses.text} hover:bg-gray-100`}
+  >
+    {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+    <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+  </button>
+  
+  <button
+    onClick={signOut}
+    className={`w-full flex items-center space-x-2 px-3 py-2 rounded-lg ${themeClasses.text} hover:bg-gray-100 text-red-600`}
+  >
+    <span>Sign Out</span>
+  </button>
+</div>
 
       {/* Main Content */}
       <div className="flex-1">

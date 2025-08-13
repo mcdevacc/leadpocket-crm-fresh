@@ -1,16 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from './AuthProvider'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 
 const LoginForm = () => {
+  const router = useRouter()
+  const emailRef = useRef<HTMLInputElement>(null)
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -26,27 +29,41 @@ const LoginForm = () => {
     setError('')
     setSuccess('')
 
+    const email = formData.email.trim()
+    const password = formData.password.trim()
+    const fullName = formData.fullName.trim()
+    const organizationName = formData.organizationName.trim()
+
     try {
       if (isLogin) {
-        await signIn(formData.email, formData.password)
+        await signIn(email, password)
+        // optional: small delay so the AuthProvider can propagate session
+        router.replace('/')
       } else {
-        await signUp(formData.email, formData.password, formData.fullName, formData.organizationName)
+        await signUp(email, password, fullName, organizationName)
         setSuccess('Account created! Please check your email to verify your account.')
         setIsLogin(true)
+        // focus email to encourage immediate sign-in after verifying
+        emailRef.current?.focus()
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err?.message || 'Something went wrong')
+      // optional: clear password on failure
+      setFormData(prev => ({ ...prev, password: '' }))
     } finally {
       setLoading(false)
     }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
+
+  const canSubmit =
+    formData.email.trim() &&
+    formData.password.trim() &&
+    (isLogin || (formData.fullName.trim() && formData.organizationName.trim()))
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -63,18 +80,17 @@ const LoginForm = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
             </div>
           )}
-
           {success && (
-            <div className="mb-4 bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
+            <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
               {success}
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
             {!isLogin && (
               <>
                 <div>
@@ -85,7 +101,7 @@ const LoginForm = () => {
                     id="fullName"
                     name="fullName"
                     type="text"
-                    required={!isLogin}
+                    required
                     value={formData.fullName}
                     onChange={handleInputChange}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -100,7 +116,7 @@ const LoginForm = () => {
                     id="organizationName"
                     name="organizationName"
                     type="text"
-                    required={!isLogin}
+                    required
                     value={formData.organizationName}
                     onChange={handleInputChange}
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -110,10 +126,9 @@ const LoginForm = () => {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
               <input
+                ref={emailRef}
                 id="email"
                 name="email"
                 type="email"
@@ -126,15 +141,13 @@ const LoginForm = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
               <div className="mt-1 relative">
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
                   required
                   value={formData.password}
                   onChange={handleInputChange}
@@ -143,13 +156,11 @@ const LoginForm = () => {
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword(s => !s)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
                 </button>
               </div>
             </div>
@@ -157,35 +168,22 @@ const LoginForm = () => {
             <div>
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                disabled={loading || !canSubmit}
+                className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  isLogin ? 'Sign in' : 'Create Account'
-                )}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isLogin ? 'Sign in' : 'Create Account'}
               </button>
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin)
-                  setError('')
-                  setSuccess('')
-                }}
-                className="text-sm text-blue-600 hover:text-blue-500"
-              >
-                {isLogin 
-                  ? "Don't have an account? Sign up" 
-                  : 'Already have an account? Sign in'
-                }
-              </button>
-            </div>
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => { setIsLogin(s => !s); setError(''); setSuccess('') }}
+              className="text-sm text-blue-600 hover:text-blue-500"
+            >
+              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </button>
           </div>
 
           {isLogin && (
